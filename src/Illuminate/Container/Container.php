@@ -1,4 +1,4 @@
-<?php namespace Illuminate\Container;
+<?php namespace Illuminate\Container; use Closure;
 
 class BindingResolutionException extends \Exception {}
 
@@ -38,7 +38,7 @@ class Container {
 	 */
 	public function bind($abstract, $concrete = null, $shared = false)
 	{
-		if (is_null($concrete)) $abstract = $concrete;
+		if (is_null($concrete)) $concrete = $abstract;
 
 		$this->bindings[$abstract] = compact('concrete', 'shared');
 	}
@@ -98,7 +98,7 @@ class Container {
 		// We're ready to instantiate an instance of the concrete type registered for
 		// the binding. This will instantiate the type, as well as resolve any of
 		// its nested dependencies recursively until they are each resolved.
-		if ($concrete === $type or $concrete instanceof Closure)
+		if ($concrete === $abstract or $concrete instanceof Closure)
 		{
 			$object = $this->build($concrete);
 		}
@@ -110,7 +110,7 @@ class Container {
 		// If the requested type is registered as a singleton, we want to cache off
 		// the instance in memory so we can return it later without creating an
 		// entirely new instances of the object on each subsequent request.
-		if ($this->bindings[$abstract]['shared'])
+		if (isset($this->bindings[$abstract]['shared']))
 		{
 			$this->instances[$abstract] = $object;
 		}
@@ -121,27 +121,27 @@ class Container {
 	/**
 	 * Instantiate an instance of the given type.
 	 *
-	 * @param  string  $type
+	 * @param  string  $concrete
 	 * @return mixed
 	 */
-	protected function build($type)
+	protected function build($concrete)
 	{
 		// If the concrete type is actually a Closure, we will just execute it and
 		// hand back the results of the function, which allows functions to be
 		// used as resolvers for more fine-tuned resolution of the objects.
-		if ($type instanceof Closure)
+		if ($concrete instanceof Closure)
 		{
-			return call_user_func_array($type);
+			return $concrete();
 		}
 
-		$reflector = new \ReflectionClass($type);
+		$reflector = new \ReflectionClass($concrete);
 
 		// If the type is not instantiable, the developer is attempting to resolve
 		// an abstract type such as an Interface of Abstract Class and there is
 		// no binding registered for the abstraction so we need to bail out.
 		if ( ! $reflector->isInstantiable())
 		{
-			$message = "Target [$type] is not instantiable.";
+			$message = "Target [$concrete] is not instantiable.";
 
 			throw new BindingResolutionException($message);
 		}
@@ -153,7 +153,7 @@ class Container {
 		// resolving any other types or dependencies from the container.
 		if (is_null($constructor))
 		{
-			return new $type;
+			return new $concrete;
 		}
 
 		$dependencies = $this->getDependencies($constructor->getParameters());
@@ -185,7 +185,7 @@ class Container {
 				throw new BindingResolutionException($message);
 			}
 
-			$dependencies[] = $this->resolve($dependency->name);
+			$dependencies[] = $this->make($dependency->name);
 		}
 
 		return (array) $dependencies;
