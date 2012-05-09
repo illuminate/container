@@ -131,7 +131,7 @@ class Container {
 		// used as resolvers for more fine-tuned resolution of the objects.
 		if ($concrete instanceof Closure)
 		{
-			return $concrete();
+			return $concrete($this);
 		}
 
 		$reflector = new \ReflectionClass($concrete);
