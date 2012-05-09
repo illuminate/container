@@ -56,6 +56,15 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($class->inner->impl instanceof ContainerImplementationStub);
 	}
 
+
+	public function testContainerIsPassedToResolvers()
+	{
+		$container = new Container;
+		$container->bind('something', function($c) { return $c; });
+		$c = $container->make('something');
+		$this->assertTrue($c === $container);
+	}
+
 }
 
 class ContainerConcreteStub {}
