@@ -19,6 +19,13 @@ class Container implements ArrayAccess {
 	protected $instances = array();
 
 	/**
+	 * The registered type aliases.
+	 *
+	 * @var array
+	 */
+	protected $aliases = array();
+
+	/**
 	 * Create a new container instance.
 	 *
 	 * @param  array  $bindings
@@ -38,6 +45,21 @@ class Container implements ArrayAccess {
 	 */
 	public function bind($abstract, $concrete = null, $shared = false)
 	{
+		// If the given type is actually an array, we'll assume an alias is
+		// being defined and will grab the real abstract class name and
+		// register the alias with the container so it can be used.
+		if (is_array($abstract))
+		{
+			$alias = current($abstract);
+
+			$abstract = key($abstract);
+
+			$this->alias($abstract, $alias);
+		}
+
+		// If the given concrete type is null it probably means the type
+		// is being bound as a singleton, so we'll just set the two
+		// types equal to each other so it can be resolved fine.
 		if (is_null($concrete)) $concrete = $abstract;
 
 		$this->bindings[$abstract] = compact('concrete', 'shared');
@@ -64,7 +86,26 @@ class Container implements ArrayAccess {
 	 */
 	public function instance($abstract, $instance)
 	{
+		if (is_array($abstract))
+		{
+			list($abstract, $alias) = $abstract;
+
+			$this->alias($abstract, $alias);
+		}
+
 		$this->instances[$abstract] = $instance;
+	}
+
+	/**
+	 * Alias a type to a shorter name.
+	 *
+	 * @param  string  $abstract
+	 * @param  string  $alias
+	 * @return void
+	 */
+	public function alias($abstract, $alias)
+	{
+		$this->aliases[$alias] = $abstract;
 	}
 
 	/**
@@ -113,6 +154,11 @@ class Container implements ArrayAccess {
 	 */
 	public function make($abstract)
 	{
+		if (isset($this->aliases[$abstract]))
+		{
+			$abstract = $this->aliases[$abstract];
+		}
+
 		// If an instance of the type is currently being managed as a singleton, we will
 		// just return the existing instance instead of instantiating a fresh instance
 		// so the developer can keep re-using the exact same object instance from us.

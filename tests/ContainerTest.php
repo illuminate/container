@@ -85,6 +85,19 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertFalse(isset($container['something']));
 	}
 
+
+	public function testAliases()
+	{
+		$container = new Container;
+		$container['foo'] = 'bar';
+		$container->alias('foo', 'baz');
+		$this->assertEquals('bar', $container->make('foo'));
+		$this->assertEquals('bar', $container->make('baz'));
+		$container->bind(array('bam' => 'boom'), function() { return 'pow'; });
+		$this->assertEquals('pow', $container->make('bam'));
+		$this->assertEquals('pow', $container->make('boom'));
+	}
+
 }
 
 class ContainerConcreteStub {}
