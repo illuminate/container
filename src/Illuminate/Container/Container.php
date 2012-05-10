@@ -50,9 +50,7 @@ class Container implements ArrayAccess {
 		// register the alias with the container so it can be used.
 		if (is_array($abstract))
 		{
-			$alias = current($abstract);
-
-			$abstract = key($abstract);
+			list($abstract, $alias) = $this->extractAlias($abstract);
 
 			$this->alias($abstract, $alias);
 		}
@@ -88,7 +86,7 @@ class Container implements ArrayAccess {
 	{
 		if (is_array($abstract))
 		{
-			list($abstract, $alias) = $abstract;
+			list($abstract, $alias) = $this->extractAlias($abstract);
 
 			$this->alias($abstract, $alias);
 		}
@@ -106,6 +104,17 @@ class Container implements ArrayAccess {
 	public function alias($abstract, $alias)
 	{
 		$this->aliases[$alias] = $abstract;
+	}
+
+	/**
+	 * Extract the type and alias from a given definition.
+	 *
+	 * @param  array  $definition
+	 * @return array
+	 */
+	protected function extractAlias(array $definition)
+	{
+		return array(key($definition), current($definition));
 	}
 
 	/**

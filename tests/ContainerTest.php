@@ -96,6 +96,9 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$container->bind(array('bam' => 'boom'), function() { return 'pow'; });
 		$this->assertEquals('pow', $container->make('bam'));
 		$this->assertEquals('pow', $container->make('boom'));
+		$container->instance(array('zoom' => 'zing'), 'wow');
+		$this->assertEquals('wow', $container->make('zoom'));
+		$this->assertEquals('wow', $container->make('zing'));
 	}
 
 }
