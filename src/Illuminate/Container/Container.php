@@ -1,8 +1,8 @@
-<?php namespace Illuminate\Container; use Closure;
+<?php namespace Illuminate\Container; use Closure, ArrayAccess;
 
 class BindingResolutionException extends \Exception {}
 
-class Container {
+class Container implements ArrayAccess {
 
 	/**
 	 * The container's bindings.
@@ -68,6 +68,44 @@ class Container {
 	}
 
 	/**
+	 * Extend an object definition.
+	 *
+	 * @param  string   $abstract
+	 * @param  Closure  $callable
+	 * @return Closure
+	 */
+	public function extend($abstract, Closure $callable)
+	{
+		// Only resolvers that have actually been registered may be extended so if
+		// the developer attempts to extend a resolver that is not explicitly
+		// bound we will bail on out of here and throw an exception back.
+		if ( ! array_key_exists($abstract, $this->bindings))
+		{
+			$message = "Type {$abstract} is not bound.";
+
+			throw new \InvalidArgumentException($message);
+		}
+
+		$factory = $this->bindings[$abstract]['concrete'];
+
+		// If the factory is not a Closure it means it is a class name that is
+		// bound in the container to an abstract type, we'll simply wrap it
+		// up in a Closure to give us something to wrap in the extends.
+		if ( ! $factory instanceof Closure)
+		{
+			$factory = function($container) use ($factory)
+			{
+				return $container->make($factory);
+			};
+		}
+
+		return $this->bindings[$abstract]['concrete'] = function($c) use ($callable, $factory)
+		{
+			return $callable($factory($c), $c);
+		};
+	}
+
+	/**
 	 * Resolve the given type from the container.
 	 *
 	 * @param  string  $abstract
@@ -80,12 +118,12 @@ class Container {
 		// so the developer can keep re-using the exact same object instance from us.
 		if (isset($this->instances[$abstract]))
 		{
-			return $this->instances[$abstract];
+			return $this->instances[$abstract];	
 		}
 
 		// If we don't have a registered resolver or concrete for the type, we'll just
-		// assume the type is the concrete name and will attempt to resolve it as is
-		// since the container should be able to resolve concretes automatically.
+		// assume the type is a concrete name and will attempt to resolve it as is
+		// since a container should be able to resolve concretes automatically.
 		if ( ! isset($this->bindings[$abstract]))
 		{
 			$concrete = $abstract;
@@ -192,13 +230,89 @@ class Container {
 	}
 
 	/**
+	 * Get the raw binding for a given type.
+	 *
+	 * @param  string  $abstract
+	 * @return mixed
+	 */
+	public function raw($abstract)
+	{
+		if ( ! isset($this->bindings[$abstract]))
+		{
+			throw new \InvalidArgumentException("Type {$abstract} is not bound.");
+		}
+
+		return $this->bindings[$abstract];
+	}
+
+	/**
 	 * Get the container's bindings.
 	 *
 	 * @return array
 	 */
-	public function getBindings()
+	public function bindings()
 	{
 		return $this->bindings;
+	}
+
+	/**
+	 * Determine if a given offset exists.
+	 *
+	 * @param  string  $key
+	 * @return bool
+	 */
+	public function offsetExists($key)
+	{
+		return isset($this->bindings[$key]);
+	}
+
+	/**
+	 * Get the value at a given offset.
+	 *
+	 * @param  string  $key
+	 * @return mixed
+	 */
+	public function offsetGet($key)
+	{
+		if ( ! array_key_exists($key, $this->bindings))
+		{
+			throw new \InvalidArgumentException("Type {$key} is not bound.");
+		}
+
+		return $this->make($key);
+	}
+
+	/**
+	 * Set the value at a given offset.
+	 *
+	 * @param  string  $key
+	 * @param  mixed   $value
+	 * @return void
+	 */
+	public function offsetSet($key, $value)
+	{
+		// If the value is not a Closure, we will make it one. This simply gives
+		// more "drop-in" replacement functionality for Pimple, which this
+		// container's simplest functions are modeled and built after.
+		if ( ! $value instanceof Closure)
+		{
+			$value = function() use ($value)
+			{
+				return $value;
+			};
+		}
+		$this->bind($key, $value);
+	}
+
+	/**
+	 * Unset the value at a given offset.
+	 *
+	 * @param  string  $key
+	 * @return void
+	 */
+	public function offsetUnset($key)
+	{
+		unset($this->bindings[$key]);
 	}
 
 }

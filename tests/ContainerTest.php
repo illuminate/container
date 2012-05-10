@@ -65,6 +65,26 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($c === $container);
 	}
 
+
+	public function testExtendedResolution()
+	{
+		$container = new Container;
+		$container->bind('something', function() { return 'Taylor'; });
+		$container->extend('something', function($something) { return $something.' Otwell'; });
+		$this->assertEquals('Taylor Otwell', $container->make('something'));
+	}
+
+
+	public function testArrayAccess()
+	{
+		$container = new Container;
+		$container['something'] = function() { return 'foo'; };
+		$this->assertTrue(isset($container['something']));
+		$this->assertEquals('foo', $container['something']);
+		unset($container['something']);
+		$this->assertFalse(isset($container['something']));
+	}
+
 }
 
 class ContainerConcreteStub {}
