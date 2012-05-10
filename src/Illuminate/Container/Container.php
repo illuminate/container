@@ -64,6 +64,30 @@ class Container implements ArrayAccess {
 	}
 
 	/**
+	 * Wrap a Closure such that it is shared.
+	 *
+	 * @param  Closure  $closure
+	 * @return Closure
+	 */
+	public function share(Closure $closure)
+	{
+		return function($container) use ($closure)
+		{
+			// We'll simply declare a static variable within the Closure
+			// and if it has not been set we will execute the given
+			// Closure to resolve the value and return it back.
+			static $object;
+
+			if (is_null($object))
+			{
+				$object = $closure($container);
+			}
+
+			return $object;
+		};
+	}
+
+	/**
 	 * Register a shared binding in the container.
 	 *
 	 * @param  string               $abstract

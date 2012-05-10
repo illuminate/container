@@ -101,6 +101,16 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('wow', $container->make('zing'));
 	}
 
+
+	public function testShareMethod()
+	{
+		$container = new Container;
+		$closure = $container->share(function() { return new stdClass; });
+		$class1 = $closure($container);
+		$class2 = $closure($container);
+		$this->assertTrue($class1 === $class2);
+	}
+
 }
 
 class ContainerConcreteStub {}
