@@ -261,7 +261,7 @@ class Container implements ArrayAccess {
 	 * @param  string  $concrete
 	 * @return mixed
 	 */
-	protected function build($concrete)
+	public function build($concrete)
 	{
 		// If the concrete type is actually a Closure, we will just execute it and
 		// hand back the results of the function, which allows functions to be
