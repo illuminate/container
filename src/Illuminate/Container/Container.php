@@ -45,9 +45,9 @@ class Container implements ArrayAccess {
 	 */
 	public function bind($abstract, $concrete = null, $shared = false)
 	{
-		// If the given type is actually an array, we'll assume an alias is
-		// being defined and will grab the real abstract class name and
-		// register the alias with the container so it can be used.
+		// If the given type is actually an array, we'll assume an alias is being
+		// defined and will grab the real abstract class name and register the
+		// alias with the container so it can be used as a short-cut for it.
 		if (is_array($abstract))
 		{
 			list($abstract, $alias) = $this->extractAlias($abstract);
@@ -55,12 +55,40 @@ class Container implements ArrayAccess {
 			$this->alias($abstract, $alias);
 		}
 
-		// If the given concrete type is null it probably means the type
-		// is being bound as a singleton, so we'll just set the two
-		// types equal to each other so it can be resolved fine.
-		if (is_null($concrete)) $concrete = $abstract;
+		// If no concrete type was given, we will simply set the concrete type to
+		// the abstract. This allows concrete types to be registered as shared
+		// without having to state their classes in both of the parameters.
+		if (is_null($concrete))
+		{
+			$concrete = $abstract;
+		}
+
+		// If the factory is not a Closure it means it is just a class name that
+		// is bound into the container to an abstract type and we'll just wrap
+		// it up in a Closure to make things more convenient when extending.
+		if ( ! $concrete instanceof Closure)
+		{
+			$concrete = function($c) use ($abstract, $concrete)
+			{
+				$method = ($abstract == $concrete) ? 'build' : 'make';
+
+				return $c->$method($concrete);
+			};
+		}
 
 		$this->bindings[$abstract] = compact('concrete', 'shared');
+	}
+
+	/**
+	 * Register a shared binding in the container.
+	 *
+	 * @param  string               $abstract
+	 * @param  Closure|string|null  $concrete
+	 * @return void
+	 */
+	public function sharedBinding($abstract, $concrete = null)
+	{
+		return $this->bind($abstract, $concrete, true);
 	}
 
 	/**
@@ -73,9 +101,9 @@ class Container implements ArrayAccess {
 	{
 		return function($container) use ($closure)
 		{
-			// We'll simply declare a static variable within the Closure
-			// and if it has not been set we will execute the given
-			// Closure to resolve the value and return it back.
+			// We'll simply declare a static variable within the Closure and if
+			// it has not been set we'll execute the given Closure to resolve
+			// the value and return it back to the consumers of the method.
 			static $object;
 
 			if (is_null($object))
@@ -85,18 +113,6 @@ class Container implements ArrayAccess {
 
 			return $object;
 		};
-	}
-
-	/**
-	 * Register a shared binding in the container.
-	 *
-	 * @param  string               $abstract
-	 * @param  Closure|string|null  $concrete
-	 * @return void
-	 */
-	public function shared($abstract, $concrete = null)
-	{
-		return $this->bind($abstract, $concrete, true);
 	}
 
 	/**
@@ -151,8 +167,8 @@ class Container implements ArrayAccess {
 	public function extend($abstract, Closure $callable)
 	{
 		// Only resolvers that have actually been registered may be extended so if
-		// the developer attempts to extend a resolver that is not explicitly
-		// bound we will bail on out of here and throw an exception back.
+		// the developer attempts to extend a resolver that isn't explicitly in
+		// the container we will bail on out of here and throw an exception.
 		if ( ! array_key_exists($abstract, $this->bindings))
 		{
 			$message = "Type {$abstract} is not bound.";
@@ -160,23 +176,27 @@ class Container implements ArrayAccess {
 			throw new \InvalidArgumentException($message);
 		}
 
-		$factory = $this->bindings[$abstract]['concrete'];
+		// We'll grab the old resolver Closure and wrap it within the new one so
+		// the new Closure will have the opportunity to modify the value given
+		// back from the original resolver. This might make your head hurts.
+		$old = $this->bindings[$abstract]['concrete'];
 
-		// If the factory is not a Closure it means it is a class name that is
-		// bound in the container to an abstract type, we'll simply wrap it
-		// up in a Closure to give us something to wrap in the extends.
-		if ( ! $factory instanceof Closure)
+		return $this->newConcrete($abstract, function($c) use ($callable, $old)
 		{
-			$factory = function($container) use ($factory)
-			{
-				return $container->make($factory);
-			};
-		}
+			return $callable($old($c), $c);
+		});
+	}
 
-		return $this->bindings[$abstract]['concrete'] = function($c) use ($callable, $factory)
-		{
-			return $callable($factory($c), $c);
-		};
+	/**
+	 * Register a new, callable concrete for a given type.
+	 *
+	 * @param  string    $abstract
+	 * @param  Closuore  $callable
+	 * @return Closure
+	 */
+	protected function newConcrete($abstract, Closure $callable)
+	{
+		return $this->bindings[$abstract]['concrete'] = $callable;
 	}
 
 	/**
@@ -329,7 +349,7 @@ class Container implements ArrayAccess {
 	 *
 	 * @return array
 	 */
-	public function bindings()
+	public function getBindings()
 	{
 		return $this->bindings;
 	}
