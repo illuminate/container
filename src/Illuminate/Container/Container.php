@@ -1,4 +1,4 @@
-<?php namespace Illuminate\Container; use Closure, ArrayAccess;
+<?php namespace Illuminate; use Closure, ArrayAccess;
 
 class BindingResolutionException extends \Exception {}
 
@@ -373,10 +373,12 @@ class Container implements ArrayAccess {
 	 */
 	public function offsetGet($key)
 	{
-		if (array_key_exists($key, $this->bindings))
+		if ( ! array_key_exists($key, $this->bindings))
 		{
-			return $this->make($key);
+			throw new \InvalidArgumentException("Type {$key} is not bound.");
 		}
+
+		return $this->make($key);
 	}
 
 	/**
