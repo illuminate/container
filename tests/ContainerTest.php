@@ -113,6 +113,16 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertTrue($class1 === $class2);
 	}
 
+
+	public function testBindingsCanBeOverriden()
+	{
+		$container = new Container;
+		$container['foo'] = 'bar';
+		$foo = $container['foo'];
+		$container['foo'] = 'baz';
+		$this->assertEquals('baz', $container['foo']);
+	}
+
 }
 
 class ContainerConcreteStub {}

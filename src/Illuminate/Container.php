@@ -247,7 +247,7 @@ class Container implements ArrayAccess {
 		// If the requested type is registered as a singleton, we want to cache off
 		// the instance in memory so we can return it later without creating an
 		// entirely new instances of the object on each subsequent request.
-		if (isset($this->bindings[$abstract]['shared']))
+		if ($this->isShared($abstract))
 		{
 			$this->instances[$abstract] = $object;
 		}
@@ -342,6 +342,19 @@ class Container implements ArrayAccess {
 		}
 
 		return $this->bindings[$abstract];
+	}
+
+	/**
+	 * Determine if a given type is shared.
+	 *
+	 * @param  string  $abstract
+	 * @return bool
+	 */
+	protected function isShared($abstract)
+	{
+		$set = isset($this->bindings[$abstract]['shared']);
+
+		return $set and $this->bindings[$abstract]['shared'] === true;
 	}
 
 	/**
