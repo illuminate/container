@@ -213,8 +213,8 @@ class Container implements ArrayAccess {
 		}
 
 		// If an instance of the type is currently being managed as a singleton, we will
-		// just return the existing instance instead of instantiating a fresh instance
-		// so the developer can keep re-using the exact same object instance from us.
+		// just return the existing instance instead of instantiating a new instance
+		// so the developer can keep using the exact same object instance from us.
 		if (isset($this->instances[$abstract]))
 		{
 			return $this->instances[$abstract];	
