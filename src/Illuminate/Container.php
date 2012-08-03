@@ -57,7 +57,7 @@ class Container implements ArrayAccess {
 
 		// If no concrete type was given, we will simply set the concrete type to
 		// the abstract. This allows concrete types to be registered as shared
-		// without having to state their classes in both of the parameters.
+		// without being made state their classes in both of the parameters.
 		if (is_null($concrete))
 		{
 			$concrete = $abstract;
@@ -65,7 +65,7 @@ class Container implements ArrayAccess {
 
 		// If the factory is not a Closure it means it is just a class name that
 		// is bound into the container to an abstract type and we'll just wrap
-		// it up in a Closure to make things more convenient when extending.
+		// it up in a Closure to make things more convenient while extending.
 		if ( ! $concrete instanceof Closure)
 		{
 			$concrete = function($c) use ($abstract, $concrete)
@@ -101,7 +101,7 @@ class Container implements ArrayAccess {
 	{
 		return function($container) use ($closure)
 		{
-			// We'll simply declare a static variable within the Closure and if
+			// We'll simply declare a static variable within the Closures and if
 			// it has not been set we'll execute the given Closure to resolve
 			// the value and return it back to the consumers of the method.
 			static $object;
@@ -168,7 +168,7 @@ class Container implements ArrayAccess {
 	{
 		// Only resolvers that have actually been registered may be extended so if
 		// the developer attempts to extend a resolver that isn't explicitly in
-		// the container we will bail on out of here and throw an exception.
+		// the container we will bail on out of here and throw our exception.
 		if ( ! array_key_exists($abstract, $this->bindings))
 		{
 			$message = "Type {$abstract} is not bound.";
@@ -176,7 +176,7 @@ class Container implements ArrayAccess {
 			throw new \InvalidArgumentException($message);
 		}
 
-		// We'll grab the old resolver Closure and wrap it within the new one so
+		// We'll grab the old resolver Closures and wrap it within the new one so
 		// the new Closure will have the opportunity to modify the value given
 		// back from the original resolver. This might make your head hurts.
 		$old = $this->bindings[$abstract]['concrete'];
@@ -234,7 +234,7 @@ class Container implements ArrayAccess {
 
 		// We're ready to instantiate an instance of the concrete type registered for
 		// the binding. This will instantiate the type, as well as resolve any of
-		// its nested dependencies recursively until they are each resolved.
+		// its nested dependencies recursively until all have gotten resolved.
 		if ($concrete === $abstract or $concrete instanceof Closure)
 		{
 			$object = $this->build($concrete);
@@ -246,7 +246,7 @@ class Container implements ArrayAccess {
 
 		// If the requested type is registered as a singleton, we want to cache off
 		// the instance in memory so we can return it later without creating an
-		// entirely new instances of the object on each subsequent request.
+		// entirely new instances of the object on each subsequent requests.
 		if ($this->isShared($abstract))
 		{
 			$this->instances[$abstract] = $object;
@@ -256,7 +256,7 @@ class Container implements ArrayAccess {
 	}
 
 	/**
-	 * Instantiate an instance of the given type.
+	 * Instantiate a concrete instance of the given type.
 	 *
 	 * @param  string  $concrete
 	 * @return mixed
@@ -264,8 +264,8 @@ class Container implements ArrayAccess {
 	public function build($concrete)
 	{
 		// If the concrete type is actually a Closure, we will just execute it and
-		// hand back the results of the function, which allows functions to be
-		// used as resolvers for more fine-tuned resolution of the objects.
+		// hand back the results of the functions, which allows functions to be
+		// used as resolvers for more fine-tuned resolution of these objects.
 		if ($concrete instanceof Closure)
 		{
 			return $concrete($this);
@@ -275,7 +275,7 @@ class Container implements ArrayAccess {
 
 		// If the type is not instantiable, the developer is attempting to resolve
 		// an abstract type such as an Interface of Abstract Class and there is
-		// no binding registered for the abstraction so we need to bail out.
+		// no binding registered for the abstractions so we need to bail out.
 		if ( ! $reflector->isInstantiable())
 		{
 			$message = "Target [$concrete] is not instantiable.";
@@ -286,14 +286,19 @@ class Container implements ArrayAccess {
 		$constructor = $reflector->getConstructor();
 
 		// If there is no constructor, that means there are no dependencies and
-		// we can just resolve an instance of the object right away without
-		// resolving any other types or dependencies from the container.
+		// we can just resolve the instance of the object right away without
+		// resolving any other types or dependencies out of the container.
 		if (is_null($constructor))
 		{
 			return new $concrete;
 		}
 
-		$dependencies = $this->getDependencies($constructor->getParameters());
+		$parameters = $constructor->getParameters();
+
+		// Once we have the constructor's parameters, we can create each of the
+		// dependency instances and then use the reflection instance to make
+		// an instance of the class injecting the created dependencies in.
+		$dependencies = $this->getDependencies($parameters);
 
 		return $reflector->newInstanceArgs($dependencies);
 	}
@@ -314,7 +319,7 @@ class Container implements ArrayAccess {
 
 			// If the class is null, it means the dependency is a string or some other
 			// primitive type which we can not esolve since it is not a class and
-			// we'll just bomb out with an error since we have nowhere to go.
+			// we'll just bomb out with an error since we have no-where to go.
 			if (is_null($dependency))
 			{
 				$message = "Unresolvable dependency resolving [$parameter].";
@@ -413,6 +418,7 @@ class Container implements ArrayAccess {
 				return $value;
 			};
 		}
+
 		$this->bind($key, $value);
 	}
 
