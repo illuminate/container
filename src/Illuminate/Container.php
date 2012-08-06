@@ -158,48 +158,6 @@ class Container implements ArrayAccess {
 	}
 
 	/**
-	 * Extend an object definition.
-	 *
-	 * @param  string   $abstract
-	 * @param  Closure  $callable
-	 * @return Closure
-	 */
-	public function extend($abstract, Closure $callable)
-	{
-		// Only resolvers that have actually been registered may be extended so if
-		// the developer attempts to extend a resolver that isn't explicitly in
-		// the container we will bail on out of here and throw our exception.
-		if ( ! array_key_exists($abstract, $this->bindings))
-		{
-			$message = "Type {$abstract} is not bound.";
-
-			throw new \InvalidArgumentException($message);
-		}
-
-		// We'll grab the old resolver Closures and wrap it within the new one so
-		// the new Closure will have the opportunity to modify the value given
-		// back from the original resolver. This might make your head hurts.
-		$old = $this->bindings[$abstract]['concrete'];
-
-		return $this->newConcrete($abstract, function($c) use ($callable, $old)
-		{
-			return $callable($old($c), $c);
-		});
-	}
-
-	/**
-	 * Register a new, callable concrete for a given type.
-	 *
-	 * @param  string    $abstract
-	 * @param  Closuore  $callable
-	 * @return Closure
-	 */
-	protected function newConcrete($abstract, Closure $callable)
-	{
-		return $this->bindings[$abstract]['concrete'] = $callable;
-	}
-
-	/**
 	 * Resolve the given type from the container.
 	 *
 	 * @param  string  $abstract

@@ -68,15 +68,6 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 	}
 
 
-	public function testExtendedResolution()
-	{
-		$container = new Container;
-		$container->bind('something', function() { return 'Taylor'; });
-		$container->extend('something', function($something) { return $something.' Otwell'; });
-		$this->assertEquals('Taylor Otwell', $container->make('something'));
-	}
-
-
 	public function testArrayAccess()
 	{
 		$container = new Container;
