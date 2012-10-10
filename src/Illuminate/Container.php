@@ -63,9 +63,9 @@ class Container implements ArrayAccess {
 			$concrete = $abstract;
 		}
 
-		// If the factory is not a Closure it means it is just a class name that
+		// If the factory is not a Closure, it means it is just a class name that
 		// is bound into the container to an abstract type and we'll just wrap
-		// it up in a Closure to make things more convenient while extending.
+		// it up in a Closure to make things more convenient when extending.
 		if ( ! $concrete instanceof Closure)
 		{
 			$concrete = function($c) use ($abstract, $concrete)
@@ -113,6 +113,32 @@ class Container implements ArrayAccess {
 
 			return $object;
 		};
+	}
+
+	/**
+	 * "Extend" an abstract type in the container.
+	 *
+	 * @param  string   $abstract
+	 * @param  Closure  $closure
+	 * @return void
+	 */
+	public function extend($abstract, Closure $closure)
+	{
+		if ( ! isset($this->bindings[$abstract]))
+		{
+			throw new \InvalidArgumentException("Type {$key} is not bound.");
+		}
+
+		// To "extend" a binding, we will grab the old "resolver" Closure and pass it
+		// into a new one. The old resolver will be called first and the result is
+		// handed off to the "new" resolver, along with this container instance.
+		$resolver = $this->bindings[$abstract]['concrete'];
+
+		$this->bind($abstract, function($container) use ($resolver, $closure)
+		{
+			return $closure($resolver($container), $container);
+
+		}, $this->isShared($abstract));
 	}
 
 	/**
@@ -165,35 +191,22 @@ class Container implements ArrayAccess {
 	 */
 	public function make($abstract)
 	{
-		if (isset($this->aliases[$abstract]))
-		{
-			$abstract = $this->aliases[$abstract];
-		}
+		$abstract = $this->getAlias($abstract);
 
-		// If an instance of the type is currently being managed as a singleton, we will
-		// just return the existing instance instead of instantiating a new instance
-		// so the developer can keep using the exact same object instance from us.
+		// If an instance of the type is currently being managed as a singleton we'll
+		// just return an existing instance instead of instantiating new instances
+		// so the developer can keep using the same objects instance every time.
 		if (isset($this->instances[$abstract]))
 		{
 			return $this->instances[$abstract];	
 		}
 
-		// If we don't have a registered resolver or concrete for the type, we'll just
-		// assume the type is a concrete name and will attempt to resolve it as is
-		// since a container should be able to resolve concretes automatically.
-		if ( ! isset($this->bindings[$abstract]))
-		{
-			$concrete = $abstract;
-		}
-		else
-		{
-			$concrete = $this->bindings[$abstract]['concrete'];
-		}
+		$concrete = $this->getConcrete($abstract);
 
 		// We're ready to instantiate an instance of the concrete type registered for
-		// the binding. This will instantiate the type, as well as resolve any of
-		// its nested dependencies recursively until all have gotten resolved.
-		if ($concrete === $abstract or $concrete instanceof Closure)
+		// the binding. This will instantiate the types, as well as resolve any of
+		// its "nested" dependencies recursively until all have gotten resolved.
+		if ($this->isBuildable($concrete, $abstract))
 		{
 			$object = $this->build($concrete);
 		}
@@ -202,15 +215,36 @@ class Container implements ArrayAccess {
 			$object = $this->make($concrete);
 		}
 
-		// If the requested type is registered as a singleton, we want to cache off
-		// the instance in memory so we can return it later without creating an
-		// entirely new instances of the object on each subsequent requests.
+		// If the requested type is registered as a singleton we'll want to cache off
+		// the instances in "memory" so we can return it later without creating an
+		// entirely new instance of an object on each subsequent request for it.
 		if ($this->isShared($abstract))
 		{
 			$this->instances[$abstract] = $object;
 		}
 
 		return $object;
+	}
+
+	/**
+	 * Get the concrete type for a given abstract.
+	 *
+	 * @param  string  $abstract
+	 * @return mixed   $concrete
+	 */
+	protected function getConcrete($abstract)
+	{
+		// If we don't have a registered resolver or concrete for the type, we'll just
+		// assume each type is a concrete name and will attempt to resolve it as is
+		// since the container should be able to resolve concretes automatically.
+		if ( ! isset($this->bindings[$abstract]))
+		{
+			return $abstract;
+		}
+		else
+		{
+			return $this->bindings[$abstract]['concrete'];
+		}
 	}
 
 	/**
@@ -243,9 +277,9 @@ class Container implements ArrayAccess {
 
 		$constructor = $reflector->getConstructor();
 
-		// If there is no constructor, that means there are no dependencies and
-		// we can just resolve the instance of the object right away without
-		// resolving any other types or dependencies out of the container.
+		// If there are no constructors, that means there are no dependencies then
+		// we can just resolve the instances of the objects right away, without
+		// resolving any other types or dependencies out of these containers.
 		if (is_null($constructor))
 		{
 			return new $concrete;
@@ -253,9 +287,9 @@ class Container implements ArrayAccess {
 
 		$parameters = $constructor->getParameters();
 
-		// Once we have the constructor's parameters, we can create each of the
-		// dependency instances and then use the reflection instance to make
-		// an instance of the class injecting the created dependencies in.
+		// Once we have all the constructor's parameters we can create each of the
+		// dependency instances and then use the reflection instances to make a
+		// new instance of this class, injecting the created dependencies in.
 		$dependencies = $this->getDependencies($parameters);
 
 		return $reflector->newInstanceArgs($dependencies);
@@ -292,22 +326,6 @@ class Container implements ArrayAccess {
 	}
 
 	/**
-	 * Get the raw binding for a given type.
-	 *
-	 * @param  string  $abstract
-	 * @return mixed
-	 */
-	public function raw($abstract)
-	{
-		if ( ! isset($this->bindings[$abstract]))
-		{
-			throw new \InvalidArgumentException("Type {$abstract} is not bound.");
-		}
-
-		return $this->bindings[$abstract];
-	}
-
-	/**
 	 * Determine if a given type is shared.
 	 *
 	 * @param  string  $abstract
@@ -318,6 +336,29 @@ class Container implements ArrayAccess {
 		$set = isset($this->bindings[$abstract]['shared']);
 
 		return $set and $this->bindings[$abstract]['shared'] === true;
+	}
+
+	/**
+	 * Determine if the given concrete is buildable.
+	 *
+	 * @param  mixed   $concrete
+	 * @param  string  $abstract
+	 * @return bool
+	 */
+	protected function isBuildable($concrete, $abstract)
+	{
+		return $concrete === $abstract or $concrete instanceof Closure;
+	}
+
+	/**
+	 * Get the alias for an abstract if available.
+	 *
+	 * @param  string  $abstract
+	 * @return string
+	 */
+	protected function getAlias($abstract)
+	{
+		return isset($this->aliases[$abstract]) ? $this->aliases[$abstract] : $abstract;
 	}
 
 	/**

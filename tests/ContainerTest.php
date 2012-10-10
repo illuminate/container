@@ -114,6 +114,54 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('baz', $container['foo']);
 	}
 
+
+	public function testExtendedBindings()
+	{
+		$container = new Container;
+		$container['foo'] = 'foo';
+		$container->extend('foo', function($old, $container)
+		{
+			return $old.'bar';
+		});
+
+		$this->assertEquals('foobar', $container->make('foo'));
+
+		$container = new Container;
+
+		$container['foo'] = $container->share(function()
+		{
+			return (object) array('name' => 'taylor');
+		});
+		$container->extend('foo', function($old, $container)
+		{
+			$old->age = 26;
+			return $old;
+		});
+
+		$result = $container->make('foo');
+
+		$this->assertEquals('taylor', $result->name);
+		$this->assertEquals(26, $result->age);
+		$this->assertTrue($result === $container->make('foo'));
+	}
+
+
+	public function testMultipleExtends()
+	{
+		$container = new Container;
+		$container['foo'] = 'foo';
+		$container->extend('foo', function($old, $container)
+		{
+			return $old.'bar';
+		});
+		$container->extend('foo', function($old, $container)
+		{
+			return $old.'baz';
+		});
+
+		$this->assertEquals('foobarbaz', $container->make('foo'));
+	}
+
 }
 
 class ContainerConcreteStub {}
