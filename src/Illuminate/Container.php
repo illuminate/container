@@ -80,6 +80,22 @@ class Container implements ArrayAccess {
 	}
 
 	/**
+	 * Register a binding if it hasn't already been registered.
+	 *
+	 * @param  string               $abstract
+	 * @param  Closure|string|null  $concrete
+	 * @param  bool                 $shared
+	 * @return bool
+	 */
+	public function bindIf($abstract, $concrete = null, $shared = false)
+	{
+		if ( ! isset($this[$abstract]))
+		{
+			$this->bind($abstract, $concrete, $shared);
+		}
+	}
+
+	/**
 	 * Register a shared binding in the container.
 	 *
 	 * @param  string               $abstract
