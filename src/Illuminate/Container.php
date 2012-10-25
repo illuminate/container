@@ -26,16 +26,6 @@ class Container implements ArrayAccess {
 	protected $aliases = array();
 
 	/**
-	 * Create a new container instance.
-	 *
-	 * @param  array  $bindings
-	 */
-	public function __construct($bindings = array())
-	{
-		$this->bindings = array();
-	}
-
-	/**
 	 * Register a binding with the container.
 	 *
 	 * @param  string               $abstract
