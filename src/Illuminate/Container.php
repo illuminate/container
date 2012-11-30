@@ -396,11 +396,6 @@ class Container implements ArrayAccess {
 	 */
 	public function offsetGet($key)
 	{
-		if ( ! array_key_exists($key, $this->bindings))
-		{
-			throw new \InvalidArgumentException("Type {$key} is not bound.");
-		}
-
 		return $this->make($key);
 	}
 
