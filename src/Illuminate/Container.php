@@ -132,7 +132,7 @@ class Container implements ArrayAccess {
 	{
 		if ( ! isset($this->bindings[$abstract]))
 		{
-			throw new \InvalidArgumentException("Type {$key} is not bound.");
+			throw new \InvalidArgumentException("Type {$abstract} is not bound.");
 		}
 
 		// To "extend" a binding, we will grab the old "resolver" Closure and pass it
