@@ -172,6 +172,30 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('foobarbaz', $container->make('foo'));
 	}
 
+	public function testMakeWithPrimitiveNamedParam()
+	{
+		$container = new Container;
+		$container->bind('IContainerContractStub', 'ContainerImplementationStub');
+		$concrete = 'ContainerDependentStubWithParams';
+		$args = array('one', 'two');
+		$container->withParam($concrete, 'args', $args);
+
+		$class = $container->make($concrete);
+
+		$this->assertEquals($args, $class->args);
+	}
+
+	/**
+	 * @expectedException Illuminate\BindingResolutionException
+	 */
+	public function testMakeWithNoNamedParam()
+	{
+		$container = new Container;
+		$container->bind('IContainerContractStub', 'ContainerImplementationStub');
+		$concrete = 'ContainerDependentStubWithParams';
+
+		$container->make($concrete);
+	}
 }
 
 class ContainerConcreteStub {}
@@ -193,5 +217,16 @@ class ContainerNestedDependentStub {
 	public function __construct(ContainerDependentStub $inner)
 	{
 		$this->inner = $inner;
+	}
+}
+
+class ContainerDependentStubWithParams {
+	public $impl;
+	public $args;
+
+	public function __construct(IContainerContractStub $impl, array $args)
+	{
+		$this->impl = $impl;
+		$this->args = $args;
 	}
 }
