@@ -26,6 +26,13 @@ class Container implements ArrayAccess {
 	protected $aliases = array();
 
 	/**
+	 * Named params for concrete types
+	 *
+	 * @var array
+	 */
+	protected $namedParams = array();
+
+	/**
 	 * Register a binding with the container.
 	 *
 	 * @param  string               $abstract
@@ -179,6 +186,26 @@ class Container implements ArrayAccess {
 	}
 
 	/**
+	 * Register a specific parameter value for a concrete type
+	 *
+	 * @param string $concrete
+	 * @param string $param
+	 * @param mixed $value
+	 * @return Container
+	 */
+	public function withParam($concrete, $param, $value)
+	{
+		if ( ! isset($this->withParams[$concrete]))
+		{
+			$this->namedParams[$concrete] = array();
+		}
+
+		$this->namedParams[$concrete][$param] = $value;
+
+		return $this;
+	}
+
+	/**
 	 * Extract the type and alias from a given definition.
 	 *
 	 * @param  array  $definition
@@ -296,7 +323,7 @@ class Container implements ArrayAccess {
 		// Once we have all the constructor's parameters we can create each of the
 		// dependency instances and then use the reflection instances to make a
 		// new instance of this class, injecting the created dependencies in.
-		$dependencies = $this->getDependencies($parameters);
+		$dependencies = $this->getDependencies($parameters, $concrete);
 
 		return $reflector->newInstanceArgs($dependencies);
 	}
@@ -305,9 +332,10 @@ class Container implements ArrayAccess {
 	 * Resolve all of the dependencies from the ReflectionParameters.
 	 *
 	 * @param  array  $parameterrs
+	 * @param  string $type
 	 * @return array
 	 */
-	protected function getDependencies($parameters)
+	protected function getDependencies($parameters, $type = null)
 	{
 		$dependencies = array();
 
@@ -316,19 +344,48 @@ class Container implements ArrayAccess {
 			$dependency = $parameter->getClass();
 
 			// If the class is null, it means the dependency is a string or some other
-			// primitive type which we can not esolve since it is not a class and
-			// we'll just bomb out with an error since we have no-where to go.
-			if (is_null($dependency))
+			// primitive type which we can not fesolve since it is not a class. If there
+			// is no named parameter for this type then we'll just bomb out with an error 
+			// since we have no-where to go.
+			if (is_null($dependency) && ! $this->hasNamedParam($type, $parameter))
 			{
 				$message = "Unresolvable dependency resolving [$parameter].";
 
 				throw new BindingResolutionException($message);
 			}
 
-			$dependencies[] = $this->make($dependency->name);
+			// If a named parameter has been supplied for this type
+			// then add it to the collection of dependencies, regardless
+			// of type
+			if($this->hasNamedParam($type, $parameter))
+			{
+				$dependencies[] = $this->namedParams[$type][$parameter->getName()];
+			}
+			else
+			{
+				$dependencies[] = $this->make($dependency->name);
+			}
 		}
 
 		return (array) $dependencies;
+	}
+
+	/**
+	 * Checks is a given type should be built with a fixed parameter
+	 *
+	 * @param string $type
+	 * @param ReflectionParameter $parameter
+	 * @return bool
+	 */
+	protected function hasNamedParam($type, $parameter)
+	{
+		$named = $this->namedParams;
+
+		if( ! isset($named[$type])) return false;
+
+		if( ! isset($named[$type][$parameter->getName()])) return false;
+
+		return true;
 	}
 
 	/**
