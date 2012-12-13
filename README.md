@@ -1,4 +1,4 @@
-# Illuminate Container 
+# Illuminate Container
 
 A powerful IoC container for PHP.
 
