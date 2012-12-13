@@ -195,7 +195,7 @@ class Container implements ArrayAccess {
 	 */
 	public function withParam($concrete, $param, $value)
 	{
-		if ( ! isset($this->withParams[$concrete]))
+		if ( ! isset($this->namedParams[$concrete]))
 		{
 			$this->namedParams[$concrete] = array();
 		}
