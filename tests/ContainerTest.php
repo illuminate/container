@@ -172,6 +172,18 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('foobarbaz', $container->make('foo'));
 	}
 
+
+	public function testParametersCanBePassedThroughToClosure()
+	{
+		$container = new Container;
+		$container->bind('foo', function($c, $parameters)
+		{
+			return $parameters;
+		});
+
+		$this->assertEquals(array(1, 2, 3), $container->make('foo', array(1, 2, 3)));
+	}
+
 }
 
 class ContainerConcreteStub {}

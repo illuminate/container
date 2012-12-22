@@ -193,9 +193,10 @@ class Container implements ArrayAccess {
 	 * Resolve the given type from the container.
 	 *
 	 * @param  string  $abstract
+	 * @param  array   $parameters
 	 * @return mixed
 	 */
-	public function make($abstract)
+	public function make($abstract, $parameters = array())
 	{
 		$abstract = $this->getAlias($abstract);
 
@@ -214,7 +215,7 @@ class Container implements ArrayAccess {
 		// its "nested" dependencies recursively until all have gotten resolved.
 		if ($this->isBuildable($concrete, $abstract))
 		{
-			$object = $this->build($concrete);
+			$object = $this->build($concrete, $parameters);
 		}
 		else
 		{
@@ -257,16 +258,17 @@ class Container implements ArrayAccess {
 	 * Instantiate a concrete instance of the given type.
 	 *
 	 * @param  string  $concrete
+	 * @param  array   $parameters
 	 * @return mixed
 	 */
-	public function build($concrete)
+	public function build($concrete, $parameters = array())
 	{
 		// If the concrete type is actually a Closure, we will just execute it and
 		// hand back the results of the functions, which allows functions to be
 		// used as resolvers for more fine-tuned resolution of these objects.
 		if ($concrete instanceof Closure)
 		{
-			return $concrete($this);
+			return $concrete($this, $parameters);
 		}
 
 		$reflector = new \ReflectionClass($concrete);
