@@ -92,7 +92,7 @@ class Container implements ArrayAccess {
 	 * @param  Closure|string|null  $concrete
 	 * @return void
 	 */
-	public function sharedBinding($abstract, $concrete = null)
+	public function singleton($abstract, $concrete = null)
 	{
 		return $this->bind($abstract, $concrete, true);
 	}

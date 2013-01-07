@@ -26,7 +26,7 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 	{
 		$container = new Container;
 		$class = new stdClass;
-		$container->sharedBinding('class', function() use ($class) { return $class; });
+		$container->singleton('class', function() use ($class) { return $class; });
 		$this->assertTrue($class === $container->make('class'));
 	}
 
@@ -41,7 +41,7 @@ class ContainerTest extends PHPUnit_Framework_TestCase {
 	public function testSharedConcreteResolution()
 	{
 		$container = new Container;
-		$container->sharedBinding('ContainerConcreteStub');
+		$container->singleton('ContainerConcreteStub');
 		$bindings = $container->getBindings();
 
 		$var1 = $container->make('ContainerConcreteStub');
