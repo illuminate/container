@@ -205,7 +205,7 @@ class Container implements ArrayAccess {
 		// so the developer can keep using the same objects instance every time.
 		if (isset($this->instances[$abstract]))
 		{
-			return $this->instances[$abstract];	
+			return $this->instances[$abstract];
 		}
 
 		$concrete = $this->getConcrete($abstract);
@@ -327,7 +327,11 @@ class Container implements ArrayAccess {
 				throw new BindingResolutionException($message);
 			}
 
-			$dependencies[] = $this->make($dependency->name);
+			if ($parameter->isDefaultValueAvailable()) {
+				$dependencies[] = $parameter->getDefaultValue();
+			} else {
+				$dependencies[] = $this->make($dependency->name, array());
+			}
 		}
 
 		return (array) $dependencies;
