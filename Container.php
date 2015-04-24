@@ -1276,5 +1276,15 @@ class Container implements ArrayAccess, ContainerContract {
 	{
 		$this[$key] = $value;
 	}
-
+	
+	/**
+	 * Determine if the given key is exists.
+	 * 
+	 * @param  string  $key
+	 * @return bool
+	 */
+	public function __isset($key)
+	{
+		return isset($this[$key]);
+	}
 }
