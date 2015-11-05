@@ -726,7 +726,7 @@ class Container implements ArrayAccess, ContainerContract
         // hand back the results of the functions, which allows functions to be
         // used as resolvers for more fine-tuned resolution of these objects.
         if ($concrete instanceof Closure) {
-            return $concrete($this, $parameters);
+            return $this->call( $concrete );
         }
 
         $reflector = new ReflectionClass($concrete);
