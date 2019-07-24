@@ -600,6 +600,7 @@ class Container implements ArrayAccess, ContainerContract
      * @param  array $parameters
      * @param  string|null $defaultMethod
      * @return mixed
+     * @throws BindingResolutionException
      * @throws ReflectionException
      */
     public function call($callback, array $parameters = [], $defaultMethod = null)
